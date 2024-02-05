@@ -1,0 +1,186 @@
+-- --------------------------------------------------------
+-- Host:                         127.0.0.1
+-- Server version:               11.1.2-MariaDB - mariadb.org binary distribution
+-- Server OS:                    Win64
+-- HeidiSQL Version:             12.3.0.6589
+-- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+
+-- Dumping database structure for university_data
+CREATE DATABASE IF NOT EXISTS `university_data` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+USE `university_data`;
+
+-- Dumping structure for table university_data.assistant
+CREATE TABLE IF NOT EXISTS `assistant` (
+  `assistantID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `researchArea` varchar(80) DEFAULT NULL,
+  `profID` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`assistantID`),
+  KEY `FK_profID` (`profID`) USING BTREE,
+  CONSTRAINT `FK_assistant_professor` FOREIGN KEY (`profID`) REFERENCES `professor` (`profID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=3008 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.course
+CREATE TABLE IF NOT EXISTS `course` (
+  `courseID` int(10) unsigned NOT NULL,
+  `title` varchar(50) NOT NULL,
+  `contactHours` tinyint(3) unsigned NOT NULL,
+  `profID` int(10) unsigned DEFAULT NULL COMMENT 'FK referencing profID in professor table',
+  PRIMARY KEY (`courseID`),
+  KEY `FK_course_professor` (`profID`),
+  CONSTRAINT `FK_course_professor` FOREIGN KEY (`profID`) REFERENCES `professor` (`profID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for function university_data.emailGenerator
+DELIMITER //
+CREATE FUNCTION `emailGenerator`(name VARCHAR(50)) RETURNS varchar(50) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+BEGIN
+    DECLARE v_email VARCHAR(50);
+    DECLARE email_with_number VARCHAR(50);
+    DECLARE cnt INT;
+    
+    SET v_email = CONCAT(name, '@kiu.edu.ge');
+    SELECT COUNT(*) INTO cnt FROM student WHERE studentEmail = v_email;
+
+    IF cnt = 0 THEN
+        RETURN v_email;
+    ELSE
+        FOR i IN 1..10 DO
+            SET email_with_number := CONCAT(name, i, '@kiu.edu.ge');
+            SELECT COUNT(*) INTO cnt FROM student WHERE studentEmail = email_with_number;
+            
+            IF cnt = 0 THEN
+                RETURN email_with_number;
+            END IF;
+        END FOR;
+    END IF;
+
+    RETURN 'NO_GENERIC_EMAIL_FOUND';
+END//
+DELIMITER ;
+
+-- Dumping structure for table university_data.enrollment
+CREATE TABLE IF NOT EXISTS `enrollment` (
+  `studID` int(10) unsigned NOT NULL,
+  `courseID` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`courseID`,`studID`),
+  KEY `FK_enrollment_student` (`studID`),
+  CONSTRAINT `FK_enrollment_course` FOREIGN KEY (`courseID`) REFERENCES `course` (`courseID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `FK_enrollment_student` FOREIGN KEY (`studID`) REFERENCES `student` (`studID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.enrollment_test
+CREATE TABLE IF NOT EXISTS `enrollment_test` (
+  `studID` int(10) unsigned NOT NULL,
+  `courseID` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`courseID`,`studID`),
+  KEY `FK_enrollment_student` (`studID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.examination
+CREATE TABLE IF NOT EXISTS `examination` (
+  `studID` int(10) unsigned NOT NULL,
+  `courseID` int(10) unsigned NOT NULL,
+  `profID` int(10) unsigned NOT NULL,
+  `grade` enum('A','B','C','D','E','F') NOT NULL,
+  PRIMARY KEY (`studID`,`courseID`),
+  KEY `FK__course` (`courseID`),
+  KEY `FK__professor` (`profID`),
+  CONSTRAINT `FK__course` FOREIGN KEY (`courseID`) REFERENCES `course` (`courseID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `FK__professor` FOREIGN KEY (`profID`) REFERENCES `professor` (`profID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `FK__student` FOREIGN KEY (`studID`) REFERENCES `student` (`studID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.log_exam
+CREATE TABLE IF NOT EXISTS `log_exam` (
+  `timestamp` date DEFAULT NULL,
+  `User` varchar(50) DEFAULT NULL,
+  `old_grade` enum('A','B','C','D','E','F') DEFAULT NULL,
+  `new_grade` enum('A','B','C','D','E','F') DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.professor
+CREATE TABLE IF NOT EXISTS `professor` (
+  `profID` int(10) unsigned NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `rank` char(2) DEFAULT '',
+  PRIMARY KEY (`profID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.requirement
+CREATE TABLE IF NOT EXISTS `requirement` (
+  `predecessor` int(10) unsigned NOT NULL,
+  `successor` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`predecessor`,`successor`),
+  KEY `FK_requirement_course_2` (`successor`),
+  CONSTRAINT `FK_requirement_course` FOREIGN KEY (`predecessor`) REFERENCES `course` (`courseID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `FK_requirement_course_2` FOREIGN KEY (`successor`) REFERENCES `course` (`courseID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table university_data.student
+CREATE TABLE IF NOT EXISTS `student` (
+  `studID` int(10) unsigned NOT NULL COMMENT 'PK',
+  `name` varchar(50) NOT NULL,
+  `semester` tinyint(3) unsigned NOT NULL,
+  `studentEmail` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`studID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for trigger university_data.examination_trigger
+SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
+DELIMITER //
+CREATE TRIGGER examination_trigger
+AFTER UPDATE ON examination
+FOR EACH ROW
+BEGIN
+    IF OLD.grade <> NEW.grade THEN
+        INSERT INTO log_exam (timestamp, User, old_grade, new_grade)
+        VALUES (NOW(), USER(), OLD.grade, NEW.grade);
+    END IF;
+END//
+DELIMITER ;
+SET SQL_MODE=@OLDTMP_SQL_MODE;
+
+-- Dumping structure for trigger university_data.studEmail_trigger
+SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
+DELIMITER //
+CREATE TRIGGER studEmail_trigger
+BEFORE INSERT ON student
+FOR EACH ROW
+SET NEW.studentEmail = emailGenerator(NEW.name)//
+DELIMITER ;
+SET SQL_MODE=@OLDTMP_SQL_MODE;
+
+/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
